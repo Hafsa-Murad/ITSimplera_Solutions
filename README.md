@@ -1,72 +1,97 @@
-Blue Team Internship – Week 1: Wazuh SIEM Setup
----
-Lab experience with setup, configuration, and validation of the [Wazuh](https://wazuh.com) SIEM/XDR system as part of the Blue Team internship at ITSimplera. This includes setup from scratch of the manager and onboarding of the endpoint agents on two different operating systems along with verification that all the core detection modules produce alerts properly.
+# Blue Team Internship – Week 1: Wazuh SIEM Deployment
 
-Introduction
----
-The objective for the first week of the internship was to make sure the Wazuh system is deployed and producing some telemetry data by verifying all the modules work as designed.
-
-Environment:
-
-| Component           | Purpose                      | Operating System         |
-|---------------------|------------------------------|--------------------------|
-| `ubuntu24`          | Manager, Indexer, Dashboard  | Ubuntu Server 24.04      |
-| `SRV2026`           | Agent                        | Windows 10 Home          |
-| `linux_agent`       | Agent                        | Linux Mint 22.3          |
-
-All components were installed and operated as VirtualBox VMs on a local hypervisor host in the same private subnet for the communication between agents and manager.
----
-
-What I Did
-
-1. Manager Installation
-- Created an Ubuntu Server 24.04 virtual machine and performed the OS updates (`apt update`, `curl`, `default-jdk`)
-- Installed Wazuh components (Manager, Indexer, Dashboard) using the official install script in the all-in-one mode (`wazuh-install.sh -a`)
-- Ensured all services (Indexer, Manager, Dashboard) were started properly and checked the dashboard login page by HTTPS
-
-2. Agent Deployment — Windows
-- Deployed the new agent using the Deploy new agent wizard in the dashboard that generates the installation script in PowerShell with the Windows package target
-- Launched the install script on the Windows 10 virtual machine and ensured the `Wazuh` service was installed and running in the Services and Programs and Features sections
-- Confirmed that the agent was deployed and its active state on the manager
-
-3. Agent Deployment – Linux
-- Redid agent deployment using DEB amd64 target and got the `wget` installation command
-- Installed the .deb package, activated and started the wazuh-agent using `systemctl`
-- Encountered and solved a registration conflict while testing against the manager host, by installing on a VM (Linux Mint)
-- Both agents were seen as active in Agents module, with one Windows and one Linux Mint
-
-4. Module Validation
-After getting two agents reporting into the system, I tested out the various capabilities of Wazuh separately to ensure that it is really capturing any action, not just the installed one:
-
-- File Integrity Monitoring (FIM) – made new, updated, and deleted test files in the monitored directory and ensured that each operation occurred in FIM: Recent events with the proper Rule ID (file added / modified / deleted / integrity checksum changed)
-- Vulnerability Detection – checked out the automatically created list of CVEs for the installed programs (OS build, Python, pip) on the Windows endpoint by severity
-- Security Configuration Assessment (SCA) – performed the automatic *CIS Microsoft Windows 10 Enterprise Benchmark scan and evaluated the pass/fail results and total compliance score
-- Security Events / Log Collection – produced several test events on the Windows agent through `cmd`/PowerShell (creation/deletion of a user account, Wazuh service stop/start, turning Windows Firewall off/on, custom events from Application-log) and ensured that each event was properly parsed, categorized, and prioritized in the Security Events module
-
-5. Documented
-- Screenshot of each step in the process (installation, registration, dashboard screens, tests results)
-- Issues experienced and how they were solved (explained below)
-- Double checked each screenshot with the written report to ensure that the figures and numbers in the report are the same as those shown on the dashboard
+Hands-on lab documenting the deployment, configuration, and testing of a [Wazuh](https://wazuh.com) SIEM/XDR environment, completed as part of my Blue Team internship at ITSimplera. This covers building the manager from scratch, onboarding endpoints across two operating systems, and validating that each core detection module actually generates the alerts it's supposed to.
 
 ---
 
- Repository Contents
+## Overview
+
+Week 1 of the internship focused on getting a working Wazuh deployment up and generating real telemetry — not just installing it, but proving each module (FIM, vulnerability detection, SCA, log-based alerting) behaves as expected under controlled test conditions.
+
+**Environment:**
+
+| Component | Role | OS |
+|---|---|---|
+| `ubuntu24` | Wazuh Manager, Indexer, Dashboard (single-node, all-in-one) | Ubuntu Server 24.04 |
+| `SRV2026` | Agent — Windows endpoint | Windows 10 Home |
+| `linux_agent` | Agent — Linux endpoint | Linux Mint 22.3 |
+
+All components were run as VirtualBox VMs on a local hypervisor host, networked on the same private subnet so agents could reach the manager directly.
+
 ---
-| `ITSimplera_BlueTeam_Week1_Report.docx` | Report document |
 
+## What I Did
 
- Technologies and Tools Used
+### 1. Manager Installation
+- Provisioned an Ubuntu Server 24.04 VM and applied system updates (`apt update`, `curl`, `default-jdk`)
+- Installed Wazuh (manager + indexer + dashboard) using the official all-in-one install script (`wazuh-install.sh -a`)
+- Verified all three services (indexer, manager, dashboard) came up healthy and logged in to the dashboard over HTTPS
+
+### 2. Agent Deployment — Windows
+- Used the dashboard's **Deploy new agent** wizard to generate a PowerShell install command targeting the Windows MSI package
+- Ran the install on the Windows 10 VM, confirmed the `Wazuh` service was installed and running via **Services** and **Programs and Features**
+- Verified the agent registered and reported **active** status on the manager
+
+### 3. Agent Deployment — Linux
+- Repeated the deployment wizard for a Linux (DEB amd64) target, generating a `wget`-based install command
+- Installed the `.deb` package, enabled and started the `wazuh-agent` service via `systemctl`
+- Hit and resolved a port/registration conflict when initially testing against the manager host itself — resolved by deploying to a dedicated VM (Linux Mint) instead
+- Confirmed both agents showed as **active** in the **Agents** inventory, one Windows and one Linux Mint
+
+### 4. Module Validation
+With both agents reporting in, I exercised each Wazuh capability individually to confirm it was actually detecting activity, not just installed:
+
+- **File Integrity Monitoring (FIM)** — created, modified, and deleted test files inside a monitored path and confirmed each action appeared in *FIM: Recent events* with the correct rule ID (file added / modified / deleted / integrity checksum changed)
+- **Vulnerability Detection** — reviewed the automatically generated CVE findings for the Windows endpoint's installed software (OS build, Python, pip), broken down by severity
+- **Security Configuration Assessment (SCA)** — ran the built-in *CIS Microsoft Windows 10 Enterprise Benchmark* scan and reviewed the pass/fail breakdown and overall compliance score
+- **Security Events / Log Collection** — generated a batch of test events on the Windows agent via `cmd`/PowerShell (user account creation and deletion, Wazuh service stop/start, Windows Firewall toggle off/on, custom Application-log events) and confirmed each was correctly parsed, classified, and leveled in the **Security Events** module
+
+### 5. Documentation
+- Captured screenshots at every stage (install, registration, dashboard views, test results)
+- Recorded issues encountered and how they were resolved (see below)
+- Cross-checked every screenshot against the written description to make sure figures and numbers reported in the write-up match what the dashboard actually showed
+
 ---
-- Security Information and Event Management (SIEM), Extended Detection and Response (XDR): Wazuh 4.14 (Manager, Indexer, Dashboard)
-- Operating Systems: Ubuntu Server 24.04, Windows 10 Home, Linux Mint 22.3
-- Virtualization: Oracle VirtualBox 7.2
-- Frameworks
 
- Notes
-- This is a standalone lab environment meant only for educational purposes; it is not linked to any production environment.
-- Screenshots contain redacted sensitive information like passwords and personal IP addresses where applicable.
-- The number of alerts or vulnerabilities displayed in this report is from a very limited test session and cannot be taken as representative of a production environment.
+## Dashboard Modules Explored
 
- Author
+| Module | Purpose | What I Verified |
+|---|---|---|
+| Overview | High-level health of agents & alert volume | Agent count, severity breakdown of last 24h alerts |
+| Endpoints ▸ Agents | Inventory of registered agents | ID, name, IP, OS, group, version, status |
+| Configuration Assessment | CIS benchmark scanning | Pass/fail counts, score %, individual check detail |
+| Malware Detection | IOC-based detection | Module presence (no live malware tested) |
+| File Integrity Monitoring | File/registry change tracking | Add/modify/delete events on a monitored path |
+| Vulnerability Detection | CVE matching against installed software | Critical/High/Medium/Low counts, top affected packages |
+| Threat Hunting / Security Events | Central alert explorer | Filtering by agent, rule group, and alert type |
+
 ---
- Hafsa Murad — Blue Team Intern, ITSimplera
+
+## Challenges & Fixes
+
+| Issue | Cause | Resolution |
+|---|---|---|
+| Browser TLS warning on first dashboard login | Self-signed cert generated by the install script | Accepted the risk (expected for a lab/self-signed deployment) |
+| Agent install attempted directly on the manager VM failed | Manager and agent both write to `/var/ossec/`, causing a conflict | Deployed the second Linux agent on a separate, dedicated VM (Linux Mint) instead |
+| Initial numbers/screenshots inconsistent between drafts | Screenshots re-taken across multiple sessions as the lab evolved | Reconciled all figures and captions against the final screenshots before submission |
+
+## Tools & Technologies
+
+- **SIEM/XDR:** Wazuh 4.14 (Manager, Indexer, Dashboard)
+- **Operating Systems:** Ubuntu Server 24.04, Windows 10 Home, Linux Mint 22.3
+- **Virtualization:** Oracle VirtualBox 7.2
+- **Frameworks referenced:** MITRE ATT&CK, PCI DSS, CIS Benchmarks
+
+---
+
+## Notes
+
+- This is an isolated personal lab environment used purely for learning — it is not connected to any production system or real network.
+- All screenshots have sensitive values (passwords, personal IPs where relevant) redacted.
+- Alert/vulnerability counts shown in the report reflect a small, single-session test window and are not representative of a production deployment.
+
+---
+
+ 👤 Author
+
+**Hafsa** — Blue Team Intern, ITSimplera
